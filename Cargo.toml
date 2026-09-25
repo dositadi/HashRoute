@@ -1,7 +1,6 @@
 [workspace]
-members = []
-
-resolver="3"
+members = ["crates/hashroute"]
+resolver = "3"
 
 [workspace.lints.clippy]
 doc_markdown = "warn"

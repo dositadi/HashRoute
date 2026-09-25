@@ -1,0 +1,17 @@
+[package]
+name = "hashroute"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.104"
+dotenvy = "0.15.7"
+envconfig = "0.11.1"
+tokio = { version = "1.53.1", features = ["full"] }
+
+[[bin]]
+name = "app"
+path = "src/bin/app.rs"
+
+[lints]
+workspace = true
