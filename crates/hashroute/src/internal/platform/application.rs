@@ -1,9 +1,10 @@
 use anyhow::Result;
 use axum::{ Router, http::{ StatusCode }, response::IntoResponse, routing::get };
 use tokio::net::TcpListener;
+use tracing::info;
 use tracing_subscriber::{ EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt };
 
-use crate::internal::AppConfig;
+use crate::internal::{ AppConfig, config::app_state::AppState };
 
 #[derive(Clone, Debug)]
 pub struct Application {
@@ -16,11 +17,19 @@ impl Application {
 
         set_up_global_tracing();
 
-        let router = Router::new().route("/", get(livez));
+        info!("starting server at {:?}", self.config.server.to_addr());
+
+        let router = Router::new().route("/", get(livez)).with_state(AppState::default());
 
         axum::serve(listener, router).await?;
 
         Ok(())
+    }
+}
+
+impl Default for Application {
+    fn default() -> Self {
+        Application { config: AppConfig::init() }
     }
 }
 
