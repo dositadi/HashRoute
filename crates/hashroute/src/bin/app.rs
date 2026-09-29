@@ -1,5 +1,5 @@
 use anyhow::Result;
-use hashroute::internal::platform::application::Application;
+use hashroute::internal::platform::app::application::Application;
 
 #[tokio::main]
 async fn main() -> Result<()> {

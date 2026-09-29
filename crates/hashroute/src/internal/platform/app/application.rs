@@ -19,7 +19,7 @@ impl Application {
 
         info!("starting server at {:?}", self.config.server.to_addr());
 
-        let router = Router::new().route("/", get(livez)).with_state(AppState::default());
+        let router = Router::new().route("/", get(livez)).with_state(AppState::init());
 
         axum::serve(listener, router).await?;
 
