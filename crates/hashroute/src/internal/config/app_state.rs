@@ -10,4 +10,5 @@ impl AppState {
     pub fn init() -> Self {
         AppState { retry: RetryConfig::default(), database: DatabaseCfg::init() }
     }
+    
 }
