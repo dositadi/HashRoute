@@ -2,10 +2,14 @@ use std::time::Duration;
 
 use envconfig::Envconfig;
 
+use crate::internal::config::database_cfg::DatabaseCfg;
+
 #[derive(Debug, Clone, Envconfig)]
 pub struct AppConfig {
     #[envconfig(nested)]
     pub server: ServerConfig,
+    #[envconfig(nested)]
+    pub database: DatabaseCfg,
 }
 
 impl AppConfig {

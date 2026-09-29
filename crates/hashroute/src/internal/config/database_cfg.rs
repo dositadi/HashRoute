@@ -22,7 +22,6 @@ impl DatabaseCfg {
     }
 
     pub fn to_dsn(&self) -> String {
-        
         format!(
             "{}://{}:{}@{}:{}/{}",
             self.scheme,
