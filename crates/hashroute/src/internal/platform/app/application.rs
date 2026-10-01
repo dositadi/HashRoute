@@ -56,6 +56,7 @@ fn set_up_global_tracing() {
         .init();
 }
 
+
 async fn livez() -> impl IntoResponse {
     StatusCode::OK
 }
