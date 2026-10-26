@@ -1,6 +1,6 @@
-use std::time::Duration;
+use std::{ path::Path, time::Duration };
 
-use sqlx::{ Connection, Executor, postgres::PgPoolOptions };
+use sqlx::{ Connection, Executor, Result, migrate, postgres::PgPoolOptions };
 use tracing::info;
 
 use crate::internal::config::{ app_config::RetryConfig, database_cfg::DatabaseCfg };
@@ -33,7 +33,7 @@ pub struct Postgres {
 }
 
 impl Postgres {
-    pub async fn new(cfg: &DatabaseCfg) -> Result<Self, ()> {
+    pub async fn new(cfg: &DatabaseCfg) -> Result<Self> {
         let options = PgPoolOptions::new()
             .max_connections(cfg.max_conn.into())
             .acquire_timeout(Duration::from_secs(cfg.acquire_timeout))
@@ -75,6 +75,20 @@ impl Postgres {
 
         let pool = options.connect(cfg.to_dsn().as_str()).await.unwrap();
 
+        info!("Postgres pool created succefully!");
+
         Ok(Self { db_pool: pool })
+    }
+
+    pub async fn migrate(&self) -> Result<()> {
+        const PATH: &str = "crates/hashroute/src/migrations";
+
+        let path = Path::new(PATH);
+
+        let migrations = migrate::Migrator::new(path).await?;
+
+        migrations.run(&self.db_pool).await?;
+
+        Ok(())
     }
 }

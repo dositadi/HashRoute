@@ -1,0 +1,11 @@
+-- Add down migration script here
+BEGIN;
+
+DROP INDEX IF EXISTS idx_name;
+DROP INDEX IF EXISTS idx_email;
+
+DROP TABLE IF EXISTS users;
+
+DROP EXTENSION IF EXISTS CITEXT;
+
+COMMIT;

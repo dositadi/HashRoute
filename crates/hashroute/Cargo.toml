@@ -17,7 +17,17 @@ tracing-subscriber = { version = "0.3.23", features = [
     "registry",
     "json",
 ] }
-sqlx = { version = "0.9.0", features = [ "runtime-tokio", "tls-native-tls", "postgres" ] }
+sqlx = { version = "0.9.0", features = [
+    "runtime-tokio",
+    "tls-native-tls",
+    "postgres",
+    "migrate",
+    "uuid",
+    "time",
+    "macros"
+] }
+chrono = "0.4.45"
+time = "0.3.55"
 
 [[bin]]
 name = "app"
