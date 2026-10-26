@@ -17,9 +17,13 @@ impl Application {
 
         set_up_global_tracing();
 
+        let cfg = AppConfig::init();
+
         info!("starting server at {:?}", self.config.server.to_addr());
 
-        let router = Router::new().route("/", get(livez)).with_state(AppState::init());
+        let router = Router::new()
+            .route("/", get(livez))
+            .with_state(AppState::init(&cfg.database).await);
 
         axum::serve(listener, router).await?;
 

@@ -14,6 +14,12 @@ pub struct DatabaseCfg {
     pub host: String,
     #[envconfig(from = "PG_PORT", default = "5431")]
     pub port: u16,
+    #[envconfig(from = "PG_MAX_CONN", default = "10")]
+    pub max_conn: u16,
+    #[envconfig(from = "PG_ACQUIRE_TIMEOUT", default = "3")]
+    pub acquire_timeout: u64,
+    #[envconfig(from = "PG_IDLE_TIMEOUT", default = "4")]
+    pub idle_timeout: u64,
 }
 
 impl DatabaseCfg {

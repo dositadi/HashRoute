@@ -17,6 +17,7 @@ tracing-subscriber = { version = "0.3.23", features = [
     "registry",
     "json",
 ] }
+sqlx = { version = "0.9.0", features = [ "runtime-tokio", "tls-native-tls", "postgres" ] }
 
 [[bin]]
 name = "app"
