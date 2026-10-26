@@ -1,5 +1,6 @@
 use anyhow::Result;
 use axum::{ Router, http::{ StatusCode }, response::IntoResponse, routing::get };
+
 use tokio::net::TcpListener;
 use tracing::info;
 use tracing_subscriber::{ EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt };
@@ -58,6 +59,7 @@ fn set_up_global_tracing() {
         )
         .init();
 }
+
 
 async fn livez() -> impl IntoResponse {
     StatusCode::OK
