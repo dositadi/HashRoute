@@ -1,4 +1,4 @@
-use crate::internal::auth::{repository::repo::{ Repo, UserRepo,DBError }, usecase::models::{RegisterInput, RegisterOutput}};
+use crate::internal::auth::{repository::repo::{ Repo, UserRepo}, usecase::models::{RegisterInput, RegisterOutput}};
 
 struct UseCase<T> where T: Repo {
     repo: T,
@@ -9,9 +9,9 @@ impl UseCase<UserRepo> {
         Self { repo: UserRepo::new(pool) }
     }
 
-    pub fn Register(&self, user: RegisterInput) -> Result<RegisterOutput, DBError> {
-        
-    }
+   /*  pub fn Register(&self, user: RegisterInput) -> Result<RegisterOutput, DBError> {
+
+    } */
 }
 
 

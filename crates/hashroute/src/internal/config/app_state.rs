@@ -3,11 +3,16 @@ use std::{ path::Path, time::Duration };
 use sqlx::{ Connection, Executor, Result, migrate, postgres::PgPoolOptions };
 use tracing::info;
 
-use crate::internal::config::{ app_config::RetryConfig, database_cfg::DatabaseCfg };
+use crate::internal::config::{
+    app_config::RetryConfig,
+    database_cfg::DatabaseCfg,
+    jwt_config::JWTConfig,
+};
 
 #[derive(Clone, Debug)]
 pub struct AppState {
     pub repository: Repository,
+    pub jwt_secret: JWTConfig,
 }
 
 impl AppState {
@@ -17,6 +22,7 @@ impl AppState {
                 retry: RetryConfig::default(),
                 postgres: Postgres::new(cfg).await.unwrap(),
             },
+            jwt_secret: JWTConfig::init(),
         }
     }
 }

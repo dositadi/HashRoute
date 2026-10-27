@@ -32,8 +32,10 @@ validator = { version = "0.20", features = ["derive"] }
 
 serde = {version = "1.0.229", features = ["derive"]}
 serde_json = "1.0.154"
-axum-extra = "0.12.6"
+axum-extra = {version = "0.12.6", features = ["typed-header"]}
 jsonwebtoken = "11.1.0"
+argon2 = "0.6.0"
+rand_core = "0.10.0"
 
 [[bin]]
 name = "app"

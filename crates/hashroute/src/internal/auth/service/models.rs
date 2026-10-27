@@ -41,11 +41,10 @@ impl IntoResponse for AuthError {
         let (status, message) = match &self {
             AuthError::InvalidToken => (StatusCode::UNAUTHORIZED, "invalid token"),
             AuthError::MissingCredentials => (StatusCode::UNAUTHORIZED, "missing credentials"),
-            AuthError::TokenCreation =>
+            AuthError::TokenCreation | AuthError::Internal =>
                 (StatusCode::INTERNAL_SERVER_ERROR, "something wrong happened"),
             AuthError::WrongCredentails => (StatusCode::UNAUTHORIZED, "wrong credentials"),
             AuthError::InvalidID => (StatusCode::UNAUTHORIZED, "invalid id"),
-            AuthError::Internal => (StatusCode::INTERNAL_SERVER_ERROR, "something wrong happened"),
             AuthError::TokenExpired => (StatusCode::UNAUTHORIZED, "expired token"),
         };
 
