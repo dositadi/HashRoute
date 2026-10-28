@@ -7,7 +7,7 @@ use jsonwebtoken::{ Header, decode, encode };
 use tracing::error;
 
 use crate::internal::{
-    auth::service::models::{ AuthError, Claims, Keys },
+    auth::service::models::{ AuthError, Claims, JwtAccessTokenResponse, Keys },
     config::{ app_state::AppState, jwt_config::JWTConfig },
 };
 
@@ -27,7 +27,7 @@ impl JWT {
         Self { cfg }
     }
 
-    pub fn access_token(&self, id: sqlx::types::Uuid) -> Result<String, AuthError> {
+    pub fn access_token(&self, id: sqlx::types::Uuid) -> Result<JwtAccessTokenResponse, AuthError> {
         let id = match String::from_utf8(id.as_bytes().to_vec()) {
             Ok(id) => { id }
             Err(why) => {
@@ -36,8 +36,10 @@ impl JWT {
             }
         };
 
+        let exp = self.cfg.access_exp;
+
         let claims = Claims {
-            exp: self.cfg.access_exp, // 1800 equivalent to 30mins-- one usize is equivalent to 1 sec
+            exp, // 1800 equivalent to 30mins-- one usize is equivalent to 1 sec
             token_type: ACCESS_TOKEN.to_owned(),
             iat: time::OffsetDateTime::now_utc().unix_timestamp() as usize,
             id: id.clone(),
@@ -55,7 +57,11 @@ impl JWT {
             }
         };
 
-        Ok(token)
+        Ok(JwtAccessTokenResponse {
+            access_token: token,
+            token_type: ACCESS_TOKEN.into(),
+            expires_at: exp,
+        })
     }
 
     pub fn refresh_token(&self, id: sqlx::types::Uuid) -> Result<String, AuthError> {
@@ -95,10 +101,10 @@ impl JWT {
         validation.set_issuer(&[ISSUER]);
         validation.set_required_spec_claims(&["exp", "iat", "sub", "iss", "nbf"]);
 
-        let decoing_key = Keys::new(self.cfg.secrets.as_bytes());
+        let decoding_key = Keys::new(self.cfg.secrets.as_bytes());
 
         let claims = match
-            decode::<Claims>(token_string.as_bytes(), &decoing_key.decoding_key, &validation)
+            decode::<Claims>(token_string.as_bytes(), &decoding_key.decoding_key, &validation)
         {
             Ok(cl) => cl.claims,
             Err(why) => {

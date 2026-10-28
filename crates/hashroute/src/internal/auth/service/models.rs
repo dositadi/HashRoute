@@ -3,6 +3,8 @@ use jsonwebtoken::{ DecodingKey, EncodingKey };
 use serde::{ Deserialize, Serialize };
 use serde_json::json;
 
+use crate::internal::auth::repository::error::DBError;
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Claims {
     pub id: String,
@@ -14,9 +16,10 @@ pub struct Claims {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct AuthBody {
+pub struct JwtAccessTokenResponse {
     pub access_token: String,
     pub token_type: String,
+    pub expires_at: usize,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -27,6 +30,7 @@ pub struct AuthPayload {
 
 #[derive(Debug)]
 pub enum AuthError {
+    InvalidPassword,
     WrongCredentails,
     MissingCredentials,
     TokenCreation,
@@ -34,6 +38,20 @@ pub enum AuthError {
     InvalidID,
     TokenExpired,
     Internal,
+    TimeOut,
+    Network(String),
+    InvalidUser,
+}
+
+impl From<DBError> for AuthError {
+    fn from(value: DBError) -> Self {
+        match value {
+            DBError::NotFound => AuthError::InvalidUser,
+            DBError::Io(why) => AuthError::Network(why),
+            DBError::TimeOut => AuthError::TimeOut,
+            _ => AuthError::Internal,
+        }
+    }
 }
 
 impl IntoResponse for AuthError {
@@ -41,11 +59,14 @@ impl IntoResponse for AuthError {
         let (status, message) = match &self {
             AuthError::InvalidToken => (StatusCode::UNAUTHORIZED, "invalid token"),
             AuthError::MissingCredentials => (StatusCode::UNAUTHORIZED, "missing credentials"),
-            AuthError::TokenCreation | AuthError::Internal =>
+            AuthError::TokenCreation | AuthError::Internal | AuthError::Network(_) =>
                 (StatusCode::INTERNAL_SERVER_ERROR, "something wrong happened"),
             AuthError::WrongCredentails => (StatusCode::UNAUTHORIZED, "wrong credentials"),
             AuthError::InvalidID => (StatusCode::UNAUTHORIZED, "invalid id"),
             AuthError::TokenExpired => (StatusCode::UNAUTHORIZED, "expired token"),
+            AuthError::InvalidPassword => (StatusCode::UNAUTHORIZED, "invalid password"),
+            AuthError::TimeOut => (StatusCode::REQUEST_TIMEOUT, "network error"),
+            AuthError::InvalidUser => (StatusCode::UNAUTHORIZED, "this user does not exist"),
         };
 
         let body = Json(json!({

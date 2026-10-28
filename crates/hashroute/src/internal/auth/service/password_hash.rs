@@ -1,11 +1,19 @@
-use anyhow::Result;
-use argon2::{ PasswordHash, PasswordHasher, password_hash::{ self, phc::SaltString } };
+use anyhow::{ Result };
+use argon2::{
+    Argon2,
+    PasswordHash,
+    PasswordHasher,
+    PasswordVerifier,
+    password_hash::{ phc::SaltString },
+};
+
+use crate::internal::auth::service::models::AuthError;
 
 #[derive(Debug, Default)]
 pub struct Argon;
 
 impl Argon {
-    pub fn Hash(password: &str) -> Result<String> {
+    pub fn hash(&self, password: &str) -> Result<String> {
         let salt = SaltString::generate();
         let argon = argon2::Argon2::default();
 
@@ -14,11 +22,14 @@ impl Argon {
         Ok(password_hash.to_string())
     }
 
+    pub fn compare(&self, password_hash: &str, password: &str) -> Result<bool, AuthError> {
+        let Ok(parsed_password) = PasswordHash::new(password_hash) else {return  Err(AuthError::Internal);};
 
-    pub fn Compare(password_hash: &str, password: &str) -> Result<bool> {
-        let parsed_password = PasswordHash::new(password_hash)?;
-        let is_valid = Argon::Compare(&parsed_password.to_string(), password).is_ok();
+        if Argon2::default().verify_password(password.as_bytes(), &parsed_password).is_err() {
+            return Err(AuthError::InvalidPassword)
+        };
+        
 
-        Ok(is_valid)
+        Ok(true)
     }
 }
