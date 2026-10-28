@@ -6,7 +6,17 @@ use serde_json::json;
 use crate::internal::auth::repository::error::DBError;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct Claims {
+pub struct AccessClaims {
+    pub id: String,
+    pub token_type: String,
+    pub sub: String,
+    pub exp: usize,
+    pub iss: String,
+    pub iat: usize,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct RefreshClaims {
     pub id: String,
     pub token_type: String,
     pub sub: String,
@@ -18,7 +28,6 @@ pub struct Claims {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct JwtAccessTokenResponse {
     pub access_token: String,
-    pub token_type: String,
     pub expires_at: usize,
 }
 

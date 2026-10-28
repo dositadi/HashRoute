@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use anyhow::Result;
 use axum::{ Router, http::{ StatusCode }, response::IntoResponse, routing::get };
 
@@ -5,7 +7,11 @@ use tokio::net::TcpListener;
 use tracing::info;
 use tracing_subscriber::{ EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt };
 
-use crate::internal::{ AppConfig, config::app_state::AppState };
+use crate::internal::{
+    AppConfig,
+    auth::{ handler::handlers::AuthHandler },
+    config::app_state::AppState,
+};
 
 #[derive(Clone, Debug)]
 pub struct Application {
@@ -20,11 +26,14 @@ impl Application {
 
         let cfg = AppConfig::init();
 
+        let state = AppState::init(&cfg.database).await;
+
         info!("starting server at {:?}", self.config.server.to_addr());
 
         let router = Router::new()
             .route("/", get(livez))
-            .with_state(AppState::init(&cfg.database).await);
+            .nest("/auth", AuthHandler.router())
+            .with_state(state);
 
         axum::serve(listener, router).await?;
 
@@ -59,7 +68,6 @@ fn set_up_global_tracing() {
         )
         .init();
 }
-
 
 async fn livez() -> impl IntoResponse {
     StatusCode::OK

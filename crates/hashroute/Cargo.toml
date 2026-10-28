@@ -36,6 +36,8 @@ axum-extra = {version = "0.12.6", features = ["typed-header"]}
 jsonwebtoken = "11.1.0"
 argon2 = "0.6.0"
 rand_core = "0.10.0"
+regex = "1.13.1"
+axum-valid = "0.25.0"
 
 [[bin]]
 name = "app"

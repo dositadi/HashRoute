@@ -140,6 +140,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "axum-valid"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c0cba26dfbdeff786711f747a51efd368c3864ab9574981ae532514dd492dd7"
+dependencies = [
+ "axum",
+ "validator",
+]
+
+[[package]]
 name = "base64"
 version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -677,11 +687,13 @@ dependencies = [
  "argon2",
  "axum",
  "axum-extra",
+ "axum-valid",
  "chrono",
  "dotenvy",
  "envconfig",
  "jsonwebtoken",
  "rand_core 0.10.1",
+ "regex",
  "serde",
  "serde_json",
  "sqlx",

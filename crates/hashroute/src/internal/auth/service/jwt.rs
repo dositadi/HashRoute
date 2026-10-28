@@ -7,7 +7,7 @@ use jsonwebtoken::{ Header, decode, encode };
 use tracing::error;
 
 use crate::internal::{
-    auth::service::models::{ AuthError, Claims, JwtAccessTokenResponse, Keys },
+    auth::service::models::{ AccessClaims, AuthError, JwtAccessTokenResponse, Keys, RefreshClaims },
     config::{ app_state::AppState, jwt_config::JWTConfig },
 };
 
@@ -38,7 +38,7 @@ impl JWT {
 
         let exp = self.cfg.access_exp;
 
-        let claims = Claims {
+        let claims = AccessClaims {
             exp, // 1800 equivalent to 30mins-- one usize is equivalent to 1 sec
             token_type: ACCESS_TOKEN.to_owned(),
             iat: time::OffsetDateTime::now_utc().unix_timestamp() as usize,
@@ -59,7 +59,6 @@ impl JWT {
 
         Ok(JwtAccessTokenResponse {
             access_token: token,
-            token_type: ACCESS_TOKEN.into(),
             expires_at: exp,
         })
     }
@@ -73,7 +72,7 @@ impl JWT {
             }
         };
 
-        let claims = Claims {
+        let claims = RefreshClaims {
             exp: self.cfg.refresh_token_exp, // 7200 equivalent to 30mins-- one usize is equivalent to 1 sec
             token_type: REFRESH_TOKEN.to_owned(),
             iat: time::OffsetDateTime::now_utc().unix_timestamp() as usize,
@@ -95,7 +94,7 @@ impl JWT {
         Ok(token)
     }
 
-    pub fn validate_access(&self, token_string: String) -> Result<Claims, AuthError> {
+    pub fn validate_access(&self, token_string: String) -> Result<AccessClaims, AuthError> {
         let mut validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::default());
 
         validation.set_issuer(&[ISSUER]);
@@ -104,7 +103,7 @@ impl JWT {
         let decoding_key = Keys::new(self.cfg.secrets.as_bytes());
 
         let claims = match
-            decode::<Claims>(token_string.as_bytes(), &decoding_key.decoding_key, &validation)
+            decode::<AccessClaims>(token_string.as_bytes(), &decoding_key.decoding_key, &validation)
         {
             Ok(cl) => cl.claims,
             Err(why) => {
@@ -135,7 +134,7 @@ impl JWT {
         Ok(claims)
     }
 
-    pub fn validate_refresh(&self, token_string: String) -> Result<Claims, AuthError> {
+    pub fn validate_refresh(&self, token_string: String) -> Result<RefreshClaims, AuthError> {
         let mut validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::default());
 
         validation.set_issuer(&[ISSUER]);
@@ -144,7 +143,7 @@ impl JWT {
         let decoing_key = Keys::new(self.cfg.secrets.as_bytes());
 
         let claims = match
-            decode::<Claims>(token_string.as_bytes(), &decoing_key.decoding_key, &validation)
+            decode::<RefreshClaims>(token_string.as_bytes(), &decoing_key.decoding_key, &validation)
         {
             Ok(cl) => cl.claims,
             Err(why) => {
@@ -177,7 +176,7 @@ impl JWT {
 }
 
 impl<S> FromRequestParts<S>
-    for Claims
+    for AccessClaims
     where
         AppState: FromRef<S>, // Tells axum to extract the appstate from the state
         S: Send + Sync
@@ -204,5 +203,30 @@ impl<S> FromRequestParts<S>
         };
 
         Ok(claims)
+    }
+}
+
+impl<S> FromRequestParts<S> for RefreshClaims where S: Send + Sync, AppState: FromRef<S> {
+    type Rejection = AuthError;
+
+    async fn from_request_parts(
+        parts: &mut axum::http::request::Parts,
+        state: &S
+    ) -> std::prelude::v1::Result<Self, Self::Rejection> {
+        let Some(value) = parts.headers.get("X-REFRESH") else {
+            return Err(AuthError::InvalidToken);
+        };
+
+        let Ok(token) = value.to_str() else {
+            return Err(AuthError::InvalidToken);
+        };
+
+        let app_state = AppState::from_ref(state);
+
+        let jwt = JWT::new(app_state.jwt_secret);
+
+        let refresh_claims = jwt.validate_refresh(token.to_owned())?;
+
+        Ok(refresh_claims)
     }
 }
