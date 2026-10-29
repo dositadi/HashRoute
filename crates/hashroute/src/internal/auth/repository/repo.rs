@@ -8,9 +8,9 @@ use crate::internal::auth::repository::models::{ User, UserCreateInput, UserCrea
 use crate::internal::auth::queries;
 
 pub trait Repo {
-    async fn create_user(&self, user: &UserCreateInput) -> Result<UserCreateResponse, DBError>;
-    async fn get_user_by_id(&self, id: sqlx::types::Uuid) -> Result<User, DBError>;
-    async fn get_user_by_email(&self, email: &str) -> Result<User, DBError>;
+    fn create_user(&self, user: &UserCreateInput) -> impl std::future::Future<Output = Result<UserCreateResponse, DBError>> + Send;
+    fn get_user_by_id(&self, id: sqlx::types::Uuid) -> impl std::future::Future<Output = Result<User, DBError>> + Send;
+    fn get_user_by_email(&self, email: &str) -> impl std::future::Future<Output = Result<User, DBError>> + Send;
 }
 
 type ErrMessage = &'static str;

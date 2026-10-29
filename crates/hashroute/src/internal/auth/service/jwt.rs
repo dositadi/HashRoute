@@ -194,6 +194,7 @@ impl<S> FromRequestParts<S>
 
         let jwt = JWT::new(app_state.jwt_secret);
 
+
         let claims = match jwt.validate_access(bearer.token().to_owned()) {
             Err(why) => {
                 return Err(why);

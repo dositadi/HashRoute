@@ -5,7 +5,7 @@ use tracing::info;
 use crate::internal::{
     auth::{
         handler::models::{ LoginPayload, RegisterPayload },
-        service::error::AuthError,
+        service::{ error::AuthError, models::RefreshClaims },
         usecase::{ app::UseCase, models::{ LoginInput, RegisterInput, RegisterOutput, Token } },
     },
     config::app_state::AppState,
@@ -15,7 +15,10 @@ pub struct AuthHandler;
 
 impl AuthHandler {
     pub fn router(&self) -> axum::Router<AppState> {
-        Router::new().route("/register", post(register)).route("/login", post(login))
+        Router::new()
+            .route("/register", post(register))
+            .route("/login", post(login))
+            .route("/rotate-refresh", post(rotate_refresh))
     }
 }
 
@@ -47,5 +50,16 @@ async fn login(
     }).await?;
 
     info!(user=?user.email,"user login successful");
+    Ok(Json(resp))
+}
+
+async fn rotate_refresh(
+    State(state): State<AppState>,
+    claims: RefreshClaims
+) -> Result<Json<Token>, AuthError> {
+    let usecase = UseCase::new(state.repository.postgres.db_pool, state.jwt_secret);
+
+    let resp = usecase.rotate_refresh(claims)?;
+
     Ok(Json(resp))
 }

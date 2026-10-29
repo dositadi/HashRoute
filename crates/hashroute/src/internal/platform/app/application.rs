@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use anyhow::Result;
 use axum::{ Router, http::{ StatusCode }, response::IntoResponse, routing::get };
 
