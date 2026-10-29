@@ -1,11 +1,16 @@
+use serde::{ Serialize };
+use uuid::Uuid;
+
 pub struct RegisterInput {
     pub name: String,
     pub password: String,
     pub email: String,
 }
 
+#[derive(Debug, Clone, Serialize)]
 pub struct RegisterOutput {
-    pub id: sqlx::types::Uuid,
+    pub id: Uuid,
+    #[serde(with = "time::serde::rfc3339")]
     pub created_at: time::OffsetDateTime,
 }
 

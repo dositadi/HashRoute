@@ -1,7 +1,10 @@
 use axum::{ Form, Router, extract::State, response::IntoResponse, routing::post };
 use axum_valid::Valid;
 
-use crate::internal::{ auth::{handler::models::User, usecase::app::UseCase}, config::app_state::AppState };
+use crate::internal::{
+    auth::{ handler::models::User, usecase::{ app::UseCase } },
+    config::app_state::AppState,
+};
 
 pub struct AuthHandler;
 
@@ -15,5 +18,7 @@ async fn register(
     State(state): State<AppState>,
     Valid(Form(user)): Valid<Form<User>>
 ) -> impl IntoResponse {
-    let usecase = UseCase::new(s)
+    let usecase = UseCase::new(state.repository.postgres.db_pool, state.jwt_secret);
+
+    let resp = usecase.register(user).await;
 }
