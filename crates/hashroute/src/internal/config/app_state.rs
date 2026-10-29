@@ -1,4 +1,4 @@
-use std::{ path::Path, time::Duration };
+use std::{ time::Duration };
 
 use sqlx::{ Connection, Executor, Result, migrate, postgres::PgPoolOptions };
 use tracing::info;
@@ -87,13 +87,7 @@ impl Postgres {
     }
 
     pub async fn migrate(&self) -> Result<()> {
-        const PATH: &str = "crates/hashroute/src/migrations";
-
-        let path = Path::new(PATH);
-
-        let migrations = migrate::Migrator::new(path).await?;
-
-        migrations.run(&self.db_pool).await?;
+        migrate!("../../migrations").run(&self.db_pool).await?;
 
         Ok(())
     }

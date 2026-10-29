@@ -6,3 +6,10 @@ migrate-up name:
 
 migrate-run:
     sqlx migrate run
+
+
+cmp-up:
+    docker compose up --build
+
+cmp-down: 
+    docker compose down
