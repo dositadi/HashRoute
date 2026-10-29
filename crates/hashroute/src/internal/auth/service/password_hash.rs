@@ -7,7 +7,7 @@ use argon2::{
     password_hash::{ phc::SaltString },
 };
 
-use crate::internal::auth::service::models::AuthError;
+use crate::internal::auth::service::error::AuthError;
 
 #[derive(Debug, Default)]
 pub struct Argon;

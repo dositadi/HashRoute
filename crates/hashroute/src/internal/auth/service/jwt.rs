@@ -7,8 +7,7 @@ use jsonwebtoken::{ Header, decode, encode };
 use tracing::error;
 
 use crate::internal::{
-    auth::service::models::{ AccessClaims, AuthError, JwtAccessTokenResponse, Keys, RefreshClaims },
-    config::{ app_state::AppState, jwt_config::JWTConfig },
+    auth::service::{error::AuthError, models::{ AccessClaims, JwtAccessTokenResponse, Keys, RefreshClaims }}, config::{ app_state::AppState, jwt_config::JWTConfig },
 };
 
 const ISSUER: &str = "hash_route";

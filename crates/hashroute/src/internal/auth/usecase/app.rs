@@ -3,8 +3,11 @@ use tracing::{ error, info };
 
 use crate::internal::{
     auth::{
-        repository::{ models::UserCreateInput, repo::{ Repo, UserRepo } }, service::{ jwt::JWT, models::{ AuthError, RefreshClaims }, password_hash::Argon }, usecase::models::{ LoginInput, RegisterInput, RegisterOutput, Token },
-    }, config::jwt_config::JWTConfig,
+        repository::{ models::UserCreateInput, repo::{ Repo, UserRepo } },
+        service::{ error::AuthError, jwt::JWT, models::RefreshClaims, password_hash::Argon },
+        usecase::models::{ LoginInput, RegisterInput, RegisterOutput, Token },
+    },
+    config::jwt_config::JWTConfig,
 };
 
 pub struct UseCase<T> where T: Repo {
@@ -50,7 +53,7 @@ impl UseCase<UserRepo> {
     }
 
     pub fn rotate_refresh(&self, claim: RefreshClaims) -> Result<Token, AuthError> {
-        let Ok(id)  = sqlx::types::Uuid::parse_str(&claim.id) else {
+        let Ok(id) = sqlx::types::Uuid::parse_str(&claim.id) else {
             error!("failed to parse user id");
             return Err(AuthError::InvalidID);
         };
@@ -59,6 +62,11 @@ impl UseCase<UserRepo> {
 
         let refresh_token = self.jwt.refresh_token(id)?;
 
-        Ok(Token { access_token: access_token.access_token, refresh_token, expires_at: access_token.expires_at })
-    } 
+        info!(user_id=?claim.id,"user token rotated successfully");
+        Ok(Token {
+            access_token: access_token.access_token,
+            refresh_token,
+            expires_at: access_token.expires_at,
+        })
+    }
 }

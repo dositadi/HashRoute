@@ -1,3 +1,1 @@
 pub mod user;
-
-use user::{CREATEUSER,GETUSERBYEMAIL,GETUSERBYID};
