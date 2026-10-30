@@ -12,11 +12,9 @@ RUN cargo install cargo-watch
 
 WORKDIR /hash_route
 
-COPY Cargo.toml Cargo.lock ./
-
-COPY . /hash_route/
+COPY . .
 
 RUN cargo fetch
 
-CMD [ "cargo", "watch", "-x", "run", "-w", "." ]
+CMD ["cargo", "watch", "-w", "crates", "-x", "run -p hashroute --bin app"]
 

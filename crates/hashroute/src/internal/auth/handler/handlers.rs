@@ -1,4 +1,11 @@
-use axum::{ Form, Json, Router, extract::State, routing::post };
+use axum::{
+    Form,
+    Json,
+    Router,
+    extract::State,
+    http::StatusCode,
+    routing::post,
+};
 use axum_valid::Valid;
 use tracing::info;
 
@@ -13,6 +20,8 @@ use crate::internal::{
 
 pub struct AuthHandler;
 
+type AppResponse<T> = Result<T, AuthError>;
+
 impl AuthHandler {
     pub fn router(&self) -> axum::Router<AppState> {
         Router::new()
@@ -25,7 +34,7 @@ impl AuthHandler {
 async fn register(
     State(state): State<AppState>,
     Valid(Form(user)): Valid<Form<RegisterPayload>>
-) -> Result<Json<RegisterOutput>, AuthError> {
+) -> AppResponse<(StatusCode, Json<RegisterOutput>)> {
     let usecase = UseCase::new(state.repository.postgres.db_pool, state.jwt_secret);
 
     let resp = usecase.register(RegisterInput {
@@ -35,13 +44,13 @@ async fn register(
     }).await?;
 
     info!("registered a user successsfully");
-    Ok(Json(resp))
+    Ok((StatusCode::CREATED, Json(resp)))
 }
 
 async fn login(
     State(state): State<AppState>,
     Valid(Form(user)): Valid<Form<LoginPayload>>
-) -> Result<Json<Token>, AuthError> {
+) -> AppResponse<(StatusCode, Json<Token>)> {
     let usecase = UseCase::new(state.repository.postgres.db_pool, state.jwt_secret);
 
     let resp = usecase.login(LoginInput {
@@ -50,16 +59,16 @@ async fn login(
     }).await?;
 
     info!(user=?user.email,"user login successful");
-    Ok(Json(resp))
+    Ok((StatusCode::OK, Json(resp)))
 }
 
 async fn rotate_refresh(
     State(state): State<AppState>,
     claims: RefreshClaims
-) -> Result<Json<Token>, AuthError> {
+) -> AppResponse<(StatusCode, Json<Token>)> {
     let usecase = UseCase::new(state.repository.postgres.db_pool, state.jwt_secret);
 
     let resp = usecase.rotate_refresh(claims)?;
 
-    Ok(Json(resp))
+    Ok((StatusCode::OK, Json(resp)))
 }

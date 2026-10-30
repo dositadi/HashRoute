@@ -79,7 +79,11 @@ impl Postgres {
                 })
             );
 
-        let pool = options.connect(cfg.to_dsn().as_str()).await.unwrap();
+        //println!("{}", cfg.to_dsn());
+
+        let pool = options
+            .connect(cfg.to_dsn().as_str()).await
+            .expect("failed to create database pool");
 
         info!("Postgres pool created succefully!");
 
