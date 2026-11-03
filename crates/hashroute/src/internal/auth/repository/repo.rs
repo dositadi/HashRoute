@@ -35,7 +35,7 @@ impl Repo for UserRepo {
             ::query_as::<_, UserCreateResponse>(queries::user::CREATEUSER)
             .bind(&user.name)
             .bind(&user.email)
-            .bind(&user.password_hash)
+            .bind(user.password_hash.as_bytes())
             .fetch_one(&self.dbpool).await;
 
         match response {
@@ -106,7 +106,7 @@ impl Repo for UserRepo {
 
         match response {
             Ok(resp) => {
-                info!(user_id=?&resp.id, "fetched user successfully");
+                info!(user_id=?resp.id, "fetched user successfully");
                 Ok(resp)
             }
             Err(why) => {

@@ -49,7 +49,10 @@ impl IntoResponse for AuthError {
             AuthError::InvalidToken | AuthError::MissingCredentials | AuthError::WrongCredentails | AuthError::InvalidID | AuthError::TokenExpired | AuthError::InvalidPassword | AuthError::InvalidUser => (StatusCode::UNAUTHORIZED, self.to_string()),
         };
 
+        let code = status.as_u16();
+
         let body = Json(json!({
+            "code": code,
             "error": message
         }));
 

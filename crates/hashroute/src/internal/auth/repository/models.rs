@@ -5,9 +5,9 @@ pub struct User {
     pub id: sqlx::types::Uuid,
     pub name: String,
     pub email: String,
-    pub password_hash: String,
+    pub password_hash: Vec<u8>,
     pub activated: bool,
-    pub activated_at: OffsetDateTime,
+    pub activated_at: Option<OffsetDateTime>,
     pub created_at: OffsetDateTime,
 }
 

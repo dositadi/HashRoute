@@ -1,11 +1,4 @@
-use axum::{
-    Form,
-    Json,
-    Router,
-    extract::State,
-    http::StatusCode,
-    routing::post,
-};
+use axum::{ Json, Router, extract::State, http::StatusCode, routing::post };
 use axum_valid::Valid;
 use tracing::info;
 
@@ -33,7 +26,7 @@ impl AuthHandler {
 
 async fn register(
     State(state): State<AppState>,
-    Valid(Form(user)): Valid<Form<RegisterPayload>>
+    Valid(Json(user)): Valid<Json<RegisterPayload>>
 ) -> AppResponse<(StatusCode, Json<RegisterOutput>)> {
     let usecase = UseCase::new(state.repository.postgres.db_pool, state.jwt_secret);
 
@@ -49,7 +42,7 @@ async fn register(
 
 async fn login(
     State(state): State<AppState>,
-    Valid(Form(user)): Valid<Form<LoginPayload>>
+    Valid(Json(user)): Valid<Json<LoginPayload>>
 ) -> AppResponse<(StatusCode, Json<Token>)> {
     let usecase = UseCase::new(state.repository.postgres.db_pool, state.jwt_secret);
 
@@ -72,3 +65,5 @@ async fn rotate_refresh(
 
     Ok((StatusCode::OK, Json(resp)))
 }
+
+/* what i want petti url to look like for each business https://akindivine587-8915372.petti.com/home  */

@@ -26,6 +26,8 @@ impl Application {
 
         let state = AppState::init(&cfg.database).await;
 
+        state.repository.postgres.migrate().await?;
+
         info!("starting server at {:?}", self.config.server.to_addr());
 
         let router = Router::new()

@@ -5,6 +5,11 @@ services:
       dockerfile: Dockerfile
     env_file:
       - .env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8080
+    ports:
+      - 8080:8080
     volumes:
       - .:/hash_route
       - cargo_target:/hash_route/target
@@ -20,9 +25,9 @@ services:
       POSTGRES_USER: ${PG_USER}
       POSTGRES_DB: ${PG_DB}
     expose:
-      - 5431
+      - 5432
     ports:
-      - "5431:5432"
+      - "5432:5432"
     volumes:
       - hashdb:/var/lib/postgresql/18/docker
     restart: unless-stopped

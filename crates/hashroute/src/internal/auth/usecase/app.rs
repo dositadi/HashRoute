@@ -38,7 +38,11 @@ impl UseCase<UserRepo> {
     pub async fn login(&self, input: LoginInput) -> Result<Token, AuthError> {
         let user = self.repo.get_user_by_email(&input.email).await?;
 
-        let _ = Argon.compare(&user.password_hash, &input.password)?;
+        let Ok(password_hash) = String::from_utf8(user.password_hash) else {
+            return Err(AuthError::Internal);
+        };
+
+        let _ = Argon.compare(&password_hash, &input.password)?;
 
         let access_resp = self.jwt.access_token(user.id)?;
 
