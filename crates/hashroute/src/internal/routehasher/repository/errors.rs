@@ -15,6 +15,8 @@ pub enum URLDBError {
     InvalidStatus,
     #[error("not found")]
     NotFound,
+    #[error("no row affected")]
+    NoRowAffected
 }
 
 impl IntoResponse for URLDBError {
@@ -28,7 +30,7 @@ impl IntoResponse for URLDBError {
             Self::Timeout => (StatusCode::REQUEST_TIMEOUT, self.to_string()),
             Self::Internal => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
             Self::InvalidStatus => (StatusCode::UNPROCESSABLE_ENTITY, self.to_string()),
-            Self::NotFound => (StatusCode::NOT_FOUND, self.to_string())
+            Self::NotFound | Self::NoRowAffected => (StatusCode::NOT_FOUND, self.to_string())
         };
 
         let code = &status.as_u16();
