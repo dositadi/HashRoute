@@ -26,7 +26,7 @@ impl Application {
 
         let state = AppState::init(&cfg.database).await;
 
-        info!("starting server at {:?}", self.config.server.to_addr());
+        info!("starting server at {:?}", self.config.server.to_addr().as_str());
 
         let router = Router::new()
             .route("/", get(livez))
