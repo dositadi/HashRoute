@@ -13,11 +13,11 @@ impl IntoResponse for URLHashError {
             Self::InvalidURL => (StatusCode::UNPROCESSABLE_ENTITY, "invalid url"),
         };
 
-        let code = &status.as_u16();
+        let code = status.as_u16();
 
         let body = Json(json!({
             "error":message,
-            "code": *code
+            "code": code
         }));
 
         (status, body).into_response()
