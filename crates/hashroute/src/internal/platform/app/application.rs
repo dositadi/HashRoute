@@ -26,7 +26,9 @@ impl Application {
 
         let state = AppState::init(&cfg.database).await;
 
-        info!("starting server at {:?}", self.config.server.to_addr().as_str());
+        state.repository.postgres.migrate().await?;
+
+        info!("starting server at {:?}", self.config.server.to_addr());
 
         let router = Router::new()
             .route("/", get(livez))

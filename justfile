@@ -12,4 +12,4 @@ cmp-up:
     docker compose up --build
 
 cmp-down: 
-    docker compose down
+    docker compose down    docker compose down
