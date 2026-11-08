@@ -67,3 +67,4 @@ async fn rotate_refresh(
 }
 
 /* what i want petti url to look like for each business https://akindivine587-8915372.petti.com/home  */
+async fn cancel_refresh() {}

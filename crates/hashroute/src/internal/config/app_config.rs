@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use envconfig::Envconfig;
 
-use crate::internal::config::database_cfg::DatabaseCfg;
+use crate::internal::config::{database_cfg::DatabaseCfg, jwt_config::JWTConfig};
 
 #[derive(Debug, Clone, Envconfig)]
 pub struct AppConfig {
@@ -10,6 +10,8 @@ pub struct AppConfig {
     pub server: ServerConfig,
     #[envconfig(nested)]
     pub database: DatabaseCfg,
+    #[envconfig(nested)]
+    pub jwt: JWTConfig
 }
 
 impl AppConfig {
