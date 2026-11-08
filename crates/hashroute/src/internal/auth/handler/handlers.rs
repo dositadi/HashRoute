@@ -65,6 +65,3 @@ async fn rotate_refresh(
 
     Ok((StatusCode::OK, Json(resp)))
 }
-
-/* what i want petti url to look like for each business https://akindivine587-8915372.petti.com/home  */
-async fn cancel_refresh() {}
