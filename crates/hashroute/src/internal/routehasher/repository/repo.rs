@@ -1,16 +1,9 @@
 use sqlx::Result;
 use sqlx::postgres::PgDatabaseError;
 use tracing::info;
-
-use crate::internal::routehasher::repository::models::{ MappedUrl, URL };
-use crate::internal::routehasher::repository::{ errors::URLDBError, models::MappedUrlResp };
-use crate::internal::routehasher::queries::query::{
-    DEACTIVATE_URL,
-    GET_URL_BY_CODE,
-    GET_URL_BY_ID,
-    INSERT_URL,
-    LIST_URLS,
-};
+use crate::internal::routehasher::{domain::{errors::URLDBError, models::{NewURL, URL}}, queries::query::{
+    DEACTIVATE_URL, GET_URL_BY_CODE, GET_URL_BY_ID, INSERT_URL, LIST_URLS,
+}};
 
 type Constraint = &'static str;
 
@@ -191,9 +184,9 @@ impl Repository {
         }
     }
 
-    pub async fn store_mapped_url(&self, input: MappedUrl) -> Result<MappedUrlResp, URLDBError> {
+    pub async fn store_mapped_url(&self, input: NewURL) -> Result<URL, URLDBError> {
         let result = sqlx
-            ::query_as::<_, MappedUrlResp>(INSERT_URL)
+            ::query_as::<_, URL>(INSERT_URL)
             .bind(input.user_id)
             .bind(input.short_code)
             .bind(input.original_url)

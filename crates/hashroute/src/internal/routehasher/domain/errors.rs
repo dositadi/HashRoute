@@ -16,7 +16,9 @@ pub enum URLDBError {
     #[error("not found")]
     NotFound,
     #[error("no row affected")]
-    NoRowAffected
+    NoRowAffected,
+    #[error("invalid credential")]
+    InvalidCredential(String),
 }
 
 impl IntoResponse for URLDBError {
@@ -30,7 +32,13 @@ impl IntoResponse for URLDBError {
             Self::Timeout => (StatusCode::REQUEST_TIMEOUT, self.to_string()),
             Self::Internal => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
             Self::InvalidStatus => (StatusCode::UNPROCESSABLE_ENTITY, self.to_string()),
-            Self::NotFound | Self::NoRowAffected => (StatusCode::NOT_FOUND, self.to_string())
+            Self::NotFound | Self::NoRowAffected => (StatusCode::NOT_FOUND, self.to_string()),
+            Self::InvalidCredential(why) => {
+                let mut message =  self.to_string();
+                message.push_str(format!(": {}", why).as_str());
+
+                (StatusCode::UNAUTHORIZED, message.to_owned())
+            }
         };
 
         let code = &status.as_u16();

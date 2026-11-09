@@ -1,7 +1,7 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use validator::ValidationError;
 
-#[derive(Debug, Clone, sqlx::FromRow)]
+#[derive(Debug, Clone, sqlx::FromRow, Serialize, Deserialize)]
 pub struct URL {
     pub id: sqlx::types::Uuid,
     pub user_id: sqlx::types::Uuid,
@@ -14,21 +14,20 @@ pub struct URL {
 
 #[derive(Debug, Clone, validator::Validate, Deserialize)]
 pub struct  NewURL {
-    #[validate(required)]
     pub user_id: sqlx::types::Uuid,
     pub short_code: String,
-    #[validate(required, url)]
+    #[validate(url)]
     pub original_url: String,
-    #[validate(required, custom(function=validate_status))]
+    #[validate(custom(function=validate_status))]
     pub status: String
 }
 
-type Status = &'static str;
+pub type Status = &'static str;
 
-const STATUS_ACTIVE: Status = "active";
-const STATUS_EXPIRED: Status = "expired";
+pub const STATUS_ACTIVE: Status = "active";
+pub const STATUS_EXPIRED: Status = "expired";
 
-fn validate_status(status: &str) -> Result<(), ValidationError> {
+pub fn validate_status(status: &str) -> Result<(), ValidationError> {
     if status.eq(STATUS_ACTIVE) || status.eq(STATUS_EXPIRED) {
         return Ok(())
     }
