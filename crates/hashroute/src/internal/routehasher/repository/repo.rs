@@ -3,7 +3,7 @@ use sqlx::postgres::PgDatabaseError;
 use tracing::info;
 use crate::internal::routehasher::{domain::{errors::URLDBError, models::{NewURL, URL}}, queries::query::{
     DEACTIVATE_URL, GET_URL_BY_CODE, GET_URL_BY_ID, INSERT_URL, LIST_URLS,
-}};
+}, service::{ handler_service::TinyRepo}};
 
 type Constraint = &'static str;
 
@@ -19,8 +19,10 @@ impl Repository {
     pub fn new(db_pool: sqlx::postgres::PgPool) -> Self {
         Self { db_pool }
     }
+}
 
-    pub async fn deactivate_url(&self, id: sqlx::types::Uuid) -> Result<(), URLDBError> {
+impl TinyRepo for Repository {
+    async fn deactivate_url(&self, id: sqlx::types::Uuid) -> Result<(), URLDBError> {
         let response = sqlx::query(DEACTIVATE_URL).bind(id).execute(&self.db_pool).await;
 
         match response {
@@ -61,7 +63,7 @@ impl Repository {
         }
     }
 
-    pub async fn get_url_by_id(&self, id: sqlx::types::Uuid) -> Result<URL, URLDBError> {
+    async fn get_url_by_id(&self, id: sqlx::types::Uuid) -> Result<URL, URLDBError> {
         let response = sqlx
             ::query_as::<_, URL>(GET_URL_BY_ID)
             .bind(id)
@@ -101,7 +103,7 @@ impl Repository {
         }
     }
 
-    pub async fn get_url_by_code(&self, short_code: String) -> Result<URL, URLDBError> {
+    async fn get_url_by_code(&self, short_code: String) -> Result<URL, URLDBError> {
         let response = sqlx
             ::query_as::<_, URL>(GET_URL_BY_CODE)
             .bind(&short_code)
@@ -141,7 +143,7 @@ impl Repository {
         }
     }
 
-    pub async fn list_mapped_urls(
+    async fn list_mapped_urls(
         &self,
         user_id: sqlx::types::Uuid
     ) -> Result<Vec<URL>, URLDBError> {
@@ -184,7 +186,7 @@ impl Repository {
         }
     }
 
-    pub async fn store_mapped_url(&self, input: NewURL) -> Result<URL, URLDBError> {
+    async fn store_mapped_url(&self, input: NewURL) -> Result<URL, URLDBError> {
         let result = sqlx
             ::query_as::<_, URL>(INSERT_URL)
             .bind(input.user_id)
