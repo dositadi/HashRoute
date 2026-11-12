@@ -31,25 +31,25 @@ impl TinyUrlHandler {
 }
 
 
-async fn deactivate(State(state): State<AppState>, Path(id): Path<String>) -> TinyUrlResponse<(StatusCode, impl IntoResponse)> {
+async fn deactivate(State(state): State<AppState>, Path(id): Path<String>, _: AccessClaims) -> TinyUrlResponse<(StatusCode, impl IntoResponse)> {
     let _ = Service::new(Repository::new(state.repository.postgres.db_pool)).deactivate_url(id).await?;
 
     Ok(success_response("success".to_owned(), StatusCode::OK))
 }
 
-async fn get_url(State(state): State<AppState>, Path(id): Path<String>) -> TinyUrlResponse<(StatusCode, impl IntoResponse)> {
+async fn get_url(State(state): State<AppState>, Path(id): Path<String>, _: AccessClaims) -> TinyUrlResponse<(StatusCode, impl IntoResponse)> {
     let url = Service::new(Repository::new(state.repository.postgres.db_pool)).get_url_by_id(id).await?;
 
     Ok(success_response(url, StatusCode::OK))
 }
 
 async fn generate_tiny_url(State(state): State<AppState>,Path(url): Path<String>, claims: AccessClaims) -> TinyUrlResponse<(StatusCode,impl IntoResponse)>  {
-    let result = Service::new(Repository::new(state.repository.postgres.db_pool)).generate(&url, claims).await?;
+    let result = Service::new(Repository::new(state.repository.postgres.db_pool)).generate(&url, claims.sub).await?;
 
     Ok(success_response(result,StatusCode::OK))
 }
 
-async fn list_urls(State(state): State<AppState>, Path(id): Path<String>) -> TinyUrlResponse<(StatusCode, impl IntoResponse)> {
+async fn list_urls(State(state): State<AppState>, Path(id): Path<String>, _: AccessClaims) -> TinyUrlResponse<(StatusCode, impl IntoResponse)> {
     let urls = Service::new(Repository::new(state.repository.postgres.db_pool)).list_urls(id).await?;
 
     Ok(success_response(urls, StatusCode::OK))

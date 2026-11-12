@@ -6,9 +6,7 @@ use tracing::info;
 use tracing_subscriber::{ EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt };
 
 use crate::internal::{
-    AppConfig,
-    auth::{ handler::handlers::AuthHandler },
-    config::app_state::AppState,
+    AppConfig, auth::handler::handlers::AuthHandler, config::app_state::AppState, platform::app::cors::cors,
 };
 
 #[derive(Clone, Debug)]
@@ -26,6 +24,8 @@ impl Application {
 
         let state = AppState::init(&cfg.database).await;
 
+        let cors = cors(&cfg.cors);
+
         state.repository.postgres.migrate().await?;
 
         info!("starting server at {:?}", self.config.server.to_addr());
@@ -33,6 +33,7 @@ impl Application {
         let router = Router::new()
             .route("/", get(livez))
             .nest("/auth", AuthHandler.router())
+            .layer(cors)
             .with_state(state);
 
         axum::serve(listener, router).await?;

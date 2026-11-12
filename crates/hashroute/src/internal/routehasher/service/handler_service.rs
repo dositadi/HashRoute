@@ -1,6 +1,6 @@
 use tracing::info;
 
-use crate::internal::{auth::service::models::AccessClaims, routehasher::{domain::{errors::URLDBError, models::{NewURL, STATUS_ACTIVE}}, repository::repo::{Repository}, service::create_hash::TinyUrl}};
+use crate::internal::{routehasher::{domain::{errors::URLDBError, models::{NewURL, STATUS_ACTIVE}}, repository::repo::{Repository}, service::create_hash::TinyUrl}};
 use crate::internal::routehasher::domain::models::URL;
 
 pub trait TinyRepo {
@@ -26,11 +26,11 @@ impl Service<Repository> {
         Service { repo }
     }
 
-    pub async fn generate(self, url: &str, claims: AccessClaims) -> Result<URL, URLDBError> {
-        let user_id = match sqlx::types::Uuid::parse_str(&claims.sub){
+    pub async fn generate(self, url: &str, id: String) -> Result<URL, URLDBError> {
+        let user_id = match sqlx::types::Uuid::parse_str(&id){
             Ok(id) => id,
             Err(why) => {
-                info!(err=?why,user_id=?&claims.sub,"user id is invalid");
+                info!(err=?why,user_id=?&id,"user id is invalid");
                 return Err(URLDBError::InvalidCredential("invalid id".to_owned()));
             }
         };
