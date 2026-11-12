@@ -27,6 +27,12 @@ pub enum AuthError {
     #[error("network error")] Network(String),
     #[error("invalid user")]
     InvalidUser,
+    #[error("invalid token credential")]
+    UnAuthorized,
+    #[error("bearer token header missing")]
+    BearerToken,
+    #[error("refresh token header missing")]
+    RefreshToken
 }
 
 impl From<DBError> for AuthError {
@@ -46,7 +52,7 @@ impl IntoResponse for AuthError {
             AuthError::TokenCreation | AuthError::Internal | AuthError::Network(_) =>
                 (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
             AuthError::TimeOut => (StatusCode::REQUEST_TIMEOUT, self.to_string()),
-            AuthError::InvalidToken | AuthError::MissingCredentials | AuthError::WrongCredentails | AuthError::InvalidID | AuthError::TokenExpired | AuthError::InvalidPassword | AuthError::InvalidUser => (StatusCode::UNAUTHORIZED, self.to_string()),
+            AuthError::InvalidToken | AuthError::MissingCredentials | AuthError::WrongCredentails | AuthError::InvalidID | AuthError::TokenExpired | AuthError::InvalidPassword | AuthError::InvalidUser | AuthError::BearerToken | AuthError::UnAuthorized | AuthError::RefreshToken => (StatusCode::UNAUTHORIZED, self.to_string()),
         };
 
         let code = status.as_u16();

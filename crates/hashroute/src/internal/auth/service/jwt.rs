@@ -186,9 +186,9 @@ impl<S> FromRequestParts<S>
         parts: &mut axum::http::request::Parts,
         state: &S
     ) -> Result<Self, Self::Rejection> {
-        let TypedHeader(Authorization(bearer)) = parts
+        let bearer = parts
             .extract::<TypedHeader<Authorization<Bearer>>>().await
-            .map_err(|_| AuthError::InvalidToken)?;
+            .map_err(|_| AuthError::BearerToken)?;
 
         let app_state = AppState::from_ref(state); //Converts the stateto appstate type
 
