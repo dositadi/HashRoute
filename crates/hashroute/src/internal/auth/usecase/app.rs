@@ -1,16 +1,22 @@
-use anyhow::{ Result };
-use tracing::{ error, info };
+use anyhow::Result;
+use tracing::{error, info};
 
 use crate::internal::{
     auth::{
-        repository::{ models::UserCreateInput, repo::{ Repo, UserRepo } },
-        service::{ error::AuthError, jwt::JWT, models::RefreshClaims, password_hash::Argon },
-        usecase::models::{ LoginInput, RegisterInput, RegisterOutput, Token },
+        repository::{
+            models::UserCreateInput,
+            repo::{Repo, UserRepo},
+        },
+        service::{error::AuthError, jwt::JWT, models::RefreshClaims, password_hash::Argon},
+        usecase::models::{LoginInput, RegisterInput, RegisterOutput, Token},
     },
     config::jwt_config::JWTConfig,
 };
 
-pub struct UseCase<T> where T: Repo {
+pub struct UseCase<T>
+where
+    T: Repo,
+{
     repo: T,
     jwt: JWT,
 }
@@ -27,9 +33,10 @@ impl UseCase<UserRepo> {
             return Err(AuthError::Internal);
         };
 
-        let resp = self.repo.create_user(
-            &(UserCreateInput { email: user.email, name: user.name, password_hash })
-        ).await?;
+        let resp = self
+            .repo
+            .create_user(&(UserCreateInput { email: user.email, name: user.name, password_hash }))
+            .await?;
 
         info!(user_id=?resp.id, "user registered successfully");
         Ok(RegisterOutput { created_at: resp.created_at, id: resp.id })
@@ -48,19 +55,14 @@ impl UseCase<UserRepo> {
 
         let refresh_token = self.jwt.refresh_token(user.id)?;
 
-        let Ok(exp) = time::OffsetDateTime::from_unix_timestamp(
-            access_resp.expires_at as i64
-        ) else {
+        let Ok(exp) = time::OffsetDateTime::from_unix_timestamp(access_resp.expires_at as i64)
+        else {
             error!("failed to parse time from usize");
             return Err(AuthError::Internal);
         };
 
         info!(user_id=?user.id, "user login successful");
-        Ok(Token {
-            access_token: access_resp.access_token,
-            refresh_token,
-            expires_at: exp,
-        })
+        Ok(Token { access_token: access_resp.access_token, refresh_token, expires_at: exp })
     }
 
     pub fn rotate_refresh(&self, claim: RefreshClaims) -> Result<Token, AuthError> {
@@ -73,18 +75,13 @@ impl UseCase<UserRepo> {
 
         let refresh_token = self.jwt.refresh_token(id)?;
 
-        let Ok(exp) = time::OffsetDateTime::from_unix_timestamp(
-            access_token.expires_at as i64
-        ) else {
+        let Ok(exp) = time::OffsetDateTime::from_unix_timestamp(access_token.expires_at as i64)
+        else {
             error!("failed to parse time from usize");
             return Err(AuthError::Internal);
         };
 
         info!(user_id=?claim.id,"user token rotated successfully");
-        Ok(Token {
-            access_token: access_token.access_token,
-            refresh_token,
-            expires_at: exp,
-        })
+        Ok(Token { access_token: access_token.access_token, refresh_token, expires_at: exp })
     }
 }

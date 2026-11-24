@@ -16,5 +16,5 @@ COPY . .
 
 RUN cargo fetch
 
-CMD ["cargo", "watch", "-w", "crates", "-x", "run -p hashroute --bin app"]
+CMD ["cargo", "watch", "-w", "crates", "-x", "run -p hashroute --bin app RUST_BACKTRACE=1"]
 

@@ -1,5 +1,5 @@
-use jsonwebtoken::{ DecodingKey, EncodingKey };
-use serde::{ Deserialize, Serialize };
+use jsonwebtoken::{DecodingKey, EncodingKey};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct AccessClaims {

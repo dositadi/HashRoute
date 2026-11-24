@@ -1,5 +1,5 @@
-use serde::{ Deserialize, Serialize };
-use validator::{ Validate, ValidationError };
+use serde::{Deserialize, Serialize};
+use validator::{Validate, ValidationError};
 
 #[derive(Debug, Clone, Validate, Deserialize, Serialize)]
 pub struct RegisterPayload {
@@ -7,7 +7,7 @@ pub struct RegisterPayload {
     pub name: String,
     #[validate(email)]
     pub email: String,
-    #[validate(length(equal = 8), custom(function = "validate_password"))]
+    #[validate(length(min = 8), custom(function = "validate_password"))]
     pub password: String,
 }
 
@@ -28,6 +28,6 @@ fn validate_password(password: &str) -> Result<(), ValidationError> {
 pub struct LoginPayload {
     #[validate(email)]
     pub email: String,
-    #[validate(length(equal = 8), custom(function = "validate_password"))]
+    #[validate(length(min = 8), custom(function = "validate_password"))]
     pub password: String,
 }

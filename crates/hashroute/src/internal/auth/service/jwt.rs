@@ -1,13 +1,23 @@
-use std::{ str::{ self } };
+use std::str::{self};
 
-use anyhow::{ Result };
-use axum::{ RequestPartsExt, extract::{ FromRef, FromRequestParts } };
-use axum_extra::{ TypedHeader, headers::{ Authorization, authorization::Bearer } };
-use jsonwebtoken::{ Header, decode, encode };
+use anyhow::Result;
+use axum::{
+    RequestPartsExt,
+    extract::{FromRef, FromRequestParts},
+};
+use axum_extra::{
+    TypedHeader,
+    headers::{Authorization, authorization::Bearer},
+};
+use jsonwebtoken::{Header, decode, encode};
 use tracing::error;
 
 use crate::internal::{
-    auth::service::{error::AuthError, models::{ AccessClaims, JwtAccessTokenResponse, Keys, RefreshClaims }}, config::{ app_state::AppState, jwt_config::JWTConfig },
+    auth::service::{
+        error::AuthError,
+        models::{AccessClaims, JwtAccessTokenResponse, Keys, RefreshClaims},
+    },
+    config::{app_state::AppState, jwt_config::JWTConfig},
 };
 
 const ISSUER: &str = "hash_route";
@@ -27,23 +37,19 @@ impl JWT {
     }
 
     pub fn access_token(&self, id: sqlx::types::Uuid) -> Result<JwtAccessTokenResponse, AuthError> {
-        let id = match String::from_utf8(id.as_bytes().to_vec()) {
-            Ok(id) => { id }
-            Err(why) => {
-                error!(why=?why,"id parsing failed");
-                return Err(AuthError::Internal);
-            }
-        };
+        let now = time::OffsetDateTime::now_utc().unix_timestamp() as usize;
 
-        let exp = self.cfg.access_exp;
+        let exp = now + (self.cfg.access_exp as usize);
+
+        let user_id = id.to_string();
 
         let claims = AccessClaims {
             exp, // 1800 equivalent to 30mins-- one usize is equivalent to 1 sec
             token_type: ACCESS_TOKEN.to_owned(),
             iat: time::OffsetDateTime::now_utc().unix_timestamp() as usize,
-            id: id.clone(),
+            id: user_id.clone(),
             iss: ISSUER.to_owned(),
-            sub: id,
+            sub: user_id,
         };
 
         let key = Keys::new(self.cfg.secrets.as_bytes());
@@ -56,23 +62,18 @@ impl JWT {
             }
         };
 
-        Ok(JwtAccessTokenResponse {
-            access_token: token,
-            expires_at: exp,
-        })
+        Ok(JwtAccessTokenResponse { access_token: token, expires_at: exp })
     }
 
     pub fn refresh_token(&self, id: sqlx::types::Uuid) -> Result<String, AuthError> {
-        let id = match String::from_utf8(id.as_bytes().to_vec()) {
-            Ok(id) => { id }
-            Err(why) => {
-                error!(why=?why,"id parsing failed");
-                return Err(AuthError::InvalidID);
-            }
-        };
+        let id = id.to_string();
+
+        let now = time::OffsetDateTime::now_utc().unix_timestamp() as usize;
+
+        let exp = now + (self.cfg.refresh_token_exp as usize);
 
         let claims = RefreshClaims {
-            exp: self.cfg.refresh_token_exp, // 7200 equivalent to 30mins-- one usize is equivalent to 1 sec
+            exp, // 7200 equivalent to 30mins-- one usize is equivalent to 1 sec
             token_type: REFRESH_TOKEN.to_owned(),
             iat: time::OffsetDateTime::now_utc().unix_timestamp() as usize,
             id: id.clone(),
@@ -97,13 +98,15 @@ impl JWT {
         let mut validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::default());
 
         validation.set_issuer(&[ISSUER]);
-        validation.set_required_spec_claims(&["exp", "iat", "sub", "iss", "nbf"]);
+        validation.set_required_spec_claims(&["exp", "iat", "sub", "iss"]);
 
         let decoding_key = Keys::new(self.cfg.secrets.as_bytes());
 
-        let claims = match
-            decode::<AccessClaims>(token_string.as_bytes(), &decoding_key.decoding_key, &validation)
-        {
+        let claims = match decode::<AccessClaims>(
+            token_string.as_bytes(),
+            &decoding_key.decoding_key,
+            &validation,
+        ) {
             Ok(cl) => cl.claims,
             Err(why) => {
                 error!(why=?why, "failed to decode user token");
@@ -125,7 +128,7 @@ impl JWT {
             return Err(AuthError::WrongCredentails);
         }
 
-        if claims.exp > (time::OffsetDateTime::now_utc().unix_timestamp() as usize) {
+        if claims.exp < (time::OffsetDateTime::now_utc().unix_timestamp() as usize) {
             error!("token has expired");
             return Err(AuthError::WrongCredentails);
         }
@@ -137,13 +140,15 @@ impl JWT {
         let mut validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::default());
 
         validation.set_issuer(&[ISSUER]);
-        validation.set_required_spec_claims(&["exp", "iat", "sub", "iss", "nbf"]);
+        validation.set_required_spec_claims(&["exp", "iat", "sub", "iss"]);
 
         let decoing_key = Keys::new(self.cfg.secrets.as_bytes());
 
-        let claims = match
-            decode::<RefreshClaims>(token_string.as_bytes(), &decoing_key.decoding_key, &validation)
-        {
+        let claims = match decode::<RefreshClaims>(
+            token_string.as_bytes(),
+            &decoing_key.decoding_key,
+            &validation,
+        ) {
             Ok(cl) => cl.claims,
             Err(why) => {
                 error!(why=?why, "failed to decode user token");
@@ -165,7 +170,7 @@ impl JWT {
             return Err(AuthError::WrongCredentails);
         }
 
-        if claims.exp > (time::OffsetDateTime::now_utc().unix_timestamp() as usize) {
+        if claims.exp < (time::OffsetDateTime::now_utc().unix_timestamp() as usize) {
             error!("token has expired");
             return Err(AuthError::WrongCredentails);
         }
@@ -174,26 +179,25 @@ impl JWT {
     }
 }
 
-impl<S> FromRequestParts<S>
-    for AccessClaims
-    where
-        AppState: FromRef<S>, // Tells axum to extract the appstate from the state
-        S: Send + Sync
+impl<S> FromRequestParts<S> for AccessClaims
+where
+    AppState: FromRef<S>, // Tells axum to extract the appstate from the state
+    S: Send + Sync,
 {
     type Rejection = AuthError;
 
     async fn from_request_parts(
         parts: &mut axum::http::request::Parts,
-        state: &S
+        state: &S,
     ) -> Result<Self, Self::Rejection> {
         let bearer = parts
-            .extract::<TypedHeader<Authorization<Bearer>>>().await
+            .extract::<TypedHeader<Authorization<Bearer>>>()
+            .await
             .map_err(|_| AuthError::BearerToken)?;
 
         let app_state = AppState::from_ref(state); //Converts the stateto appstate type
 
         let jwt = JWT::new(app_state.jwt_secret);
-
 
         let claims = match jwt.validate_access(bearer.token().to_owned()) {
             Err(why) => {
@@ -206,12 +210,16 @@ impl<S> FromRequestParts<S>
     }
 }
 
-impl<S> FromRequestParts<S> for RefreshClaims where S: Send + Sync, AppState: FromRef<S> {
+impl<S> FromRequestParts<S> for RefreshClaims
+where
+    S: Send + Sync,
+    AppState: FromRef<S>,
+{
     type Rejection = AuthError;
 
     async fn from_request_parts(
         parts: &mut axum::http::request::Parts,
-        state: &S
+        state: &S,
     ) -> std::prelude::v1::Result<Self, Self::Rejection> {
         let Some(value) = parts.headers.get("X-REFRESH") else {
             return Err(AuthError::InvalidToken);
