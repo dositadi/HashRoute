@@ -17,11 +17,11 @@ pub struct Application {
 
 impl Application {
     pub async fn start_server(self) -> Result<()> {
-        let listener = TcpListener::bind(self.config.server.to_addr()).await?;
-
         set_up_global_tracing();
 
-        let cfg = AppConfig::init();
+        let cfg = self.config;
+
+        let listener = TcpListener::bind(cfg.server.to_addr()).await?;
 
         let state = AppState::init(&cfg.database).await;
 
@@ -29,12 +29,13 @@ impl Application {
 
         state.repository.postgres.migrate().await?;
 
-        info!("starting server at {:?}", self.config.server.to_addr());
+        info!("starting server at {:?}", cfg.server.to_addr());
 
         let router = Router::new()
             .route("/", get(livez))
             .nest("/tiny/v1/auth", AuthHandler.router())
             .nest("/tiny/v1/tiny-url", TinyUrlHandler::router())
+            .merge(TinyUrlHandler::redirect_router())
             .layer(cors)
             .with_state(state);
 

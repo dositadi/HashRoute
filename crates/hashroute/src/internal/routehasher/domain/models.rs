@@ -9,7 +9,7 @@ pub struct URL {
     pub original_url: String,
     pub status: String,
     pub created_at: time::OffsetDateTime,
-    pub expiration_time: Option<time::OffsetDateTime>,
+    pub expiration_date: Option<time::OffsetDateTime>,
 }
 
 #[derive(Debug, Clone, validator::Validate, Deserialize)]
@@ -37,4 +37,9 @@ pub fn validate_status(status: &str) -> Result<(), ValidationError> {
 #[derive(Debug, Deserialize)]
 pub struct URLQuery {
     pub url: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct IdQuery {
+    pub id: String,
 }

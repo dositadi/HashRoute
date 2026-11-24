@@ -13,7 +13,7 @@ pub const LIST_URLS: &str =
 SELECT *
 FROM url_mapping
 WHERE user_id = $1
-AND expiration_date IS NULL
+AND (expiration_date IS NULL OR expiration_date > NOW())
 ORDER BY created_at DESC;
 "#;
 
@@ -22,8 +22,8 @@ pub const GET_URL_BY_CODE: &str =
 SELECT *
 FROM url_mapping
 WHERE short_code = $1
-AND expiration_date IS NULL
-ORDER BY created_at DESC;
+AND status = 'active'
+AND (expiration_date IS NULL OR expiration_date > NOW());
 "#;
 
 pub const GET_URL_BY_ID: &str =
@@ -31,13 +31,15 @@ pub const GET_URL_BY_ID: &str =
 SELECT *
 FROM url_mapping
 WHERE id = $1
-AND expiration_date IS NULL
-ORDER BY created_at DESC;
+AND user_id = $2
+AND (expiration_date IS NULL OR expiration_date > NOW());
 "#;
 
 pub const DEACTIVATE_URL: &str =
     r#"
 UPDATE url_mapping
-SET status = 'inactive', expiration_date = NOW()
-WHERE id = $1 AND expiration_date IS NULL;
+SET status = 'expired', expiration_date = NOW()
+WHERE id = $1
+AND user_id = $2
+AND (expiration_date IS NULL OR expiration_date > NOW());
 "#;
