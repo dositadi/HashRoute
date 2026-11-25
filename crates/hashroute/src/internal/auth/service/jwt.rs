@@ -39,7 +39,7 @@ impl JWT {
     pub fn access_token(&self, id: sqlx::types::Uuid) -> Result<JwtAccessTokenResponse, AuthError> {
         let now = time::OffsetDateTime::now_utc().unix_timestamp() as usize;
 
-        let exp = now + (self.cfg.access_exp as usize);
+        let exp = now + self.cfg.access_exp;
 
         let user_id = id.to_string();
 
@@ -70,7 +70,7 @@ impl JWT {
 
         let now = time::OffsetDateTime::now_utc().unix_timestamp() as usize;
 
-        let exp = now + (self.cfg.refresh_token_exp as usize);
+        let exp = now + self.cfg.refresh_token_exp;
 
         let claims = RefreshClaims {
             exp, // 7200 equivalent to 30mins-- one usize is equivalent to 1 sec
@@ -108,10 +108,7 @@ impl JWT {
             &validation,
         ) {
             Ok(cl) => cl.claims,
-            Err(why) => {
-                error!(why=?why, "failed to decode user token");
-                return Err(AuthError::InvalidToken);
-            }
+            Err(why) => return Err(decode_error(&why)),
         };
 
         if claims.iss.trim().is_empty() {
@@ -123,14 +120,14 @@ impl JWT {
             return Err(AuthError::WrongCredentails);
         }
 
-        if !claims.token_type.ends_with(ACCESS_TOKEN) {
+        if claims.token_type != ACCESS_TOKEN {
             error!("claim has wrong credential");
             return Err(AuthError::WrongCredentails);
         }
 
         if claims.exp < (time::OffsetDateTime::now_utc().unix_timestamp() as usize) {
             error!("token has expired");
-            return Err(AuthError::WrongCredentails);
+            return Err(AuthError::TokenExpired);
         }
 
         Ok(claims)
@@ -150,10 +147,7 @@ impl JWT {
             &validation,
         ) {
             Ok(cl) => cl.claims,
-            Err(why) => {
-                error!(why=?why, "failed to decode user token");
-                return Err(AuthError::InvalidToken);
-            }
+            Err(why) => return Err(decode_error(&why)),
         };
 
         if claims.iss.trim().is_empty() {
@@ -165,18 +159,27 @@ impl JWT {
             return Err(AuthError::WrongCredentails);
         }
 
-        if !claims.token_type.ends_with(ACCESS_TOKEN) {
+        if claims.token_type != REFRESH_TOKEN {
             error!("claim has wrong credential");
             return Err(AuthError::WrongCredentails);
         }
 
         if claims.exp < (time::OffsetDateTime::now_utc().unix_timestamp() as usize) {
             error!("token has expired");
-            return Err(AuthError::WrongCredentails);
+            return Err(AuthError::TokenExpired);
         }
 
         Ok(claims)
     }
+}
+
+/// An expired token gets its own error so a frontend knows to refresh instead of logging out.
+fn decode_error(why: &jsonwebtoken::errors::Error) -> AuthError {
+    if matches!(why.kind(), jsonwebtoken::errors::ErrorKind::ExpiredSignature) {
+        return AuthError::TokenExpired;
+    }
+    error!(why=?why, "failed to decode user token");
+    AuthError::InvalidToken
 }
 
 impl<S> FromRequestParts<S> for AccessClaims
@@ -222,7 +225,7 @@ where
         state: &S,
     ) -> std::prelude::v1::Result<Self, Self::Rejection> {
         let Some(value) = parts.headers.get("X-REFRESH") else {
-            return Err(AuthError::InvalidToken);
+            return Err(AuthError::RefreshToken);
         };
 
         let Ok(token) = value.to_str() else {

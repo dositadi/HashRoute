@@ -4,7 +4,7 @@ use sqlx::{ Connection, Executor, Result, migrate, postgres::PgPoolOptions };
 use tracing::info;
 
 use crate::internal::config::{
-    app_config::RetryConfig,
+    app_config::{ AppConfig, RetryConfig },
     database_cfg::DatabaseCfg,
     jwt_config::JWTConfig,
 };
@@ -13,16 +13,21 @@ use crate::internal::config::{
 pub struct AppState {
     pub repository: Repository,
     pub jwt_secret: JWTConfig,
+    /// Base for `short_url` in link responses, without a trailing slash.
+    pub public_base_url: String,
 }
 
 impl AppState {
-    pub async fn init(cfg: &DatabaseCfg) -> Self {
+    pub async fn init(cfg: &AppConfig) -> Self {
+        Self::from_pool(Postgres::new(&cfg.database).await.unwrap(), cfg)
+    }
+
+    /// Builds the state around an existing pool (tests use a lazy pool that never connects).
+    pub fn from_pool(postgres: Postgres, cfg: &AppConfig) -> Self {
         AppState {
-            repository: Repository {
-                retry: RetryConfig::default(),
-                postgres: Postgres::new(cfg).await.unwrap(),
-            },
-            jwt_secret: JWTConfig::init(),
+            repository: Repository { retry: RetryConfig::default(), postgres },
+            jwt_secret: cfg.jwt.clone(),
+            public_base_url: cfg.server.public_base_url.trim_end_matches('/').to_owned(),
         }
     }
 }

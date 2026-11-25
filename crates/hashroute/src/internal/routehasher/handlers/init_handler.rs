@@ -1,57 +1,40 @@
 use axum::{
-    Json, Router,
-    extract::{Path, Query, State},
+    Router,
+    extract::{Path, State},
     http::StatusCode,
-    response::{IntoResponse, Redirect},
+    response::{Redirect, Response},
     routing::{get, post},
 };
-use serde::Serialize;
-use serde_json::json;
 
 use crate::internal::{
     auth::service::models::AccessClaims,
     config::app_state::AppState,
+    platform::api::{self, ValidJson},
     routehasher::{
         domain::{
             errors::URLDBError,
-            models::{IdQuery, URLQuery},
+            models::{CreateLinkPayload, LinkView},
         },
         repository::repo::Repository,
         service::handler_service::Service,
     },
 };
 
-type TinyUrlResponse<T> = Result<T, URLDBError>;
+type LinkResponse = Result<Response, URLDBError>;
 
-fn success_response<T>(resp: T, status_code: StatusCode) -> (StatusCode, impl IntoResponse)
-where
-    T: Serialize + Send,
-{
-    let code = status_code.as_u16();
-    let body = Json(json!(
-        {
-            "code": code,
-            "body": resp
-        }
-    ));
-
-    (status_code, body)
-}
-
-fn service(state: AppState) -> Service<Repository> {
-    Service::new(Repository::new(state.repository.postgres.db_pool))
+fn service(state: &AppState) -> Service<Repository> {
+    Service::new(Repository::new(state.repository.postgres.db_pool.clone()))
 }
 
 pub struct TinyUrlHandler;
 
 impl TinyUrlHandler {
-    /// Authenticated management API, nested under `/tiny/v1/tiny-url`.
+    /// Authenticated link API, nested under `/tiny/v1/links`.
     pub fn router() -> axum::Router<AppState> {
         Router::new()
-            .route("/generate", post(generate_tiny_url))
-            .route("/list-all", get(list_urls))
-            .route("/get", get(get_url))
-            .route("/deactivate", post(deactivate))
+            .route("/", get(list_links).post(create_link))
+            .route("/{id}", get(get_link))
+            .route("/{id}/deactivate", post(deactivate_link))
     }
 
     /// Public redirect route, mounted at the root: `GET /{code}`.
@@ -63,47 +46,53 @@ impl TinyUrlHandler {
 async fn redirect(
     State(state): State<AppState>,
     Path(code): Path<String>,
-) -> TinyUrlResponse<Redirect> {
-    let url = service(state).get_url_by_code(code).await?;
+) -> Result<Redirect, URLDBError> {
+    let url = service(&state).get_url_by_code(code).await?;
 
     Ok(Redirect::temporary(&url.original_url))
 }
 
-async fn deactivate(
+/// `POST /tiny/v1/links` with `{ "url": "https://..." }` → 201 with the new link.
+async fn create_link(
     State(state): State<AppState>,
-    Query(query): Query<IdQuery>,
     claims: AccessClaims,
-) -> TinyUrlResponse<(StatusCode, impl IntoResponse)> {
-    service(state).deactivate_url(&query.id, &claims.sub).await?;
+    ValidJson(payload): ValidJson<CreateLinkPayload>,
+) -> LinkResponse {
+    let url = service(&state).generate(&payload.url, &claims.sub).await?;
 
-    Ok(success_response("success".to_owned(), StatusCode::OK))
+    Ok(api::ok(StatusCode::CREATED, LinkView::new(url, &state.public_base_url)))
 }
 
-async fn get_url(
-    State(state): State<AppState>,
-    Query(query): Query<IdQuery>,
-    claims: AccessClaims,
-) -> TinyUrlResponse<(StatusCode, impl IntoResponse)> {
-    let url = service(state).get_url_by_id(&query.id, &claims.sub).await?;
+/// `GET /tiny/v1/links` → the caller's active links, newest first.
+async fn list_links(State(state): State<AppState>, claims: AccessClaims) -> LinkResponse {
+    let links: Vec<LinkView> = service(&state)
+        .list_urls(&claims.sub)
+        .await?
+        .into_iter()
+        .map(|url| LinkView::new(url, &state.public_base_url))
+        .collect();
 
-    Ok(success_response(url, StatusCode::OK))
+    Ok(api::ok(StatusCode::OK, links))
 }
 
-async fn generate_tiny_url(
+/// `GET /tiny/v1/links/{id}` → one of the caller's links.
+async fn get_link(
     State(state): State<AppState>,
-    Query(url): Query<URLQuery>,
+    Path(id): Path<String>,
     claims: AccessClaims,
-) -> TinyUrlResponse<(StatusCode, impl IntoResponse)> {
-    let result = service(state).generate(&url.url, &claims.sub).await?;
+) -> LinkResponse {
+    let url = service(&state).get_url_by_id(&id, &claims.sub).await?;
 
-    Ok(success_response(result, StatusCode::CREATED))
+    Ok(api::ok(StatusCode::OK, LinkView::new(url, &state.public_base_url)))
 }
 
-async fn list_urls(
+/// `POST /tiny/v1/links/{id}/deactivate` → 204; the short code stops redirecting.
+async fn deactivate_link(
     State(state): State<AppState>,
+    Path(id): Path<String>,
     claims: AccessClaims,
-) -> TinyUrlResponse<(StatusCode, impl IntoResponse)> {
-    let urls = service(state).list_urls(&claims.sub).await?;
+) -> Result<StatusCode, URLDBError> {
+    service(&state).deactivate_url(&id, &claims.sub).await?;
 
-    Ok(success_response(urls, StatusCode::OK))
+    Ok(StatusCode::NO_CONTENT)
 }

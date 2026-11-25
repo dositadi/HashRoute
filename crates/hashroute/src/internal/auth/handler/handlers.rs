@@ -1,19 +1,19 @@
-use axum::{ Json, Router, extract::State, http::StatusCode, routing::post };
-use axum_valid::Valid;
+use axum::{ Router, extract::State, http::StatusCode, response::Response, routing::{ get, post } };
 use tracing::info;
 
 use crate::internal::{
     auth::{
         handler::models::{ LoginPayload, RegisterPayload },
-        service::{ error::AuthError, models::RefreshClaims },
-        usecase::{ app::UseCase, models::{ LoginInput, RegisterInput, RegisterOutput, Token } },
+        service::{ error::AuthError, models::{ AccessClaims, RefreshClaims } },
+        usecase::{ app::UseCase, models::{ LoginInput, RegisterInput } },
     },
     config::app_state::AppState,
+    platform::api::{ self, ValidJson },
 };
 
 pub struct AuthHandler;
 
-type AppResponse<T> = Result<T, AuthError>;
+type AppResponse = Result<Response, AuthError>;
 
 impl AuthHandler {
     pub fn router(&self) -> axum::Router<AppState> {
@@ -21,13 +21,14 @@ impl AuthHandler {
             .route("/register", post(register))
             .route("/login", post(login))
             .route("/rotate-refresh", post(rotate_refresh))
+            .route("/me", get(me))
     }
 }
 
 async fn register(
     State(state): State<AppState>,
-    Valid(Json(user)): Valid<Json<RegisterPayload>>
-) -> AppResponse<(StatusCode, Json<RegisterOutput>)> {
+    ValidJson(user): ValidJson<RegisterPayload>
+) -> AppResponse {
     let usecase = UseCase::new(state.repository.postgres.db_pool, state.jwt_secret);
 
     let resp = usecase.register(RegisterInput {
@@ -37,13 +38,13 @@ async fn register(
     }).await?;
 
     info!("registered a user successsfully");
-    Ok((StatusCode::CREATED, Json(resp)))
+    Ok(api::ok(StatusCode::CREATED, resp))
 }
 
 async fn login(
     State(state): State<AppState>,
-    Valid(Json(user)): Valid<Json<LoginPayload>>
-) -> AppResponse<(StatusCode, Json<Token>)> {
+    ValidJson(user): ValidJson<LoginPayload>
+) -> AppResponse {
     let usecase = UseCase::new(state.repository.postgres.db_pool, state.jwt_secret);
 
     let resp = usecase.login(LoginInput {
@@ -52,16 +53,25 @@ async fn login(
     }).await?;
 
     info!(user=?user.email,"user login successful");
-    Ok((StatusCode::OK, Json(resp)))
+    Ok(api::ok(StatusCode::OK, resp))
 }
 
 async fn rotate_refresh(
     State(state): State<AppState>,
     claims: RefreshClaims
-) -> AppResponse<(StatusCode, Json<Token>)> {
+) -> AppResponse {
     let usecase = UseCase::new(state.repository.postgres.db_pool, state.jwt_secret);
 
     let resp = usecase.rotate_refresh(claims)?;
 
-    Ok((StatusCode::OK, Json(resp)))
+    Ok(api::ok(StatusCode::OK, resp))
+}
+
+/// `GET /tiny/v1/auth/me` → the logged-in user's profile.
+async fn me(State(state): State<AppState>, claims: AccessClaims) -> AppResponse {
+    let usecase = UseCase::new(state.repository.postgres.db_pool, state.jwt_secret);
+
+    let resp = usecase.me(&claims.sub).await?;
+
+    Ok(api::ok(StatusCode::OK, resp))
 }

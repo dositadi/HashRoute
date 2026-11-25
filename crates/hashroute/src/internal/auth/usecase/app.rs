@@ -8,7 +8,7 @@ use crate::internal::{
             repo::{Repo, UserRepo},
         },
         service::{error::AuthError, jwt::JWT, models::RefreshClaims, password_hash::Argon},
-        usecase::models::{LoginInput, RegisterInput, RegisterOutput, Token},
+        usecase::models::{LoginInput, Profile, RegisterInput, RegisterOutput, Token},
     },
     config::jwt_config::JWTConfig,
 };
@@ -49,7 +49,7 @@ impl UseCase<UserRepo> {
             return Err(AuthError::Internal);
         };
 
-        let _ = Argon.compare(&password_hash, &input.password)?;
+        Argon.compare(&password_hash, &input.password)?;
 
         let access_resp = self.jwt.access_token(user.id)?;
 
@@ -63,6 +63,16 @@ impl UseCase<UserRepo> {
 
         info!(user_id=?user.id, "user login successful");
         Ok(Token { access_token: access_resp.access_token, refresh_token, expires_at: exp })
+    }
+
+    pub async fn me(&self, user_id: &str) -> Result<Profile, AuthError> {
+        let Ok(id) = sqlx::types::Uuid::parse_str(user_id) else {
+            return Err(AuthError::InvalidID);
+        };
+
+        let user = self.repo.get_user_by_id(id).await?;
+
+        Ok(Profile { id: user.id, name: user.name, email: user.email, created_at: user.created_at })
     }
 
     pub fn rotate_refresh(&self, claim: RefreshClaims) -> Result<Token, AuthError> {

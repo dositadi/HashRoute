@@ -28,5 +28,3 @@ target
 target/
 
 .env
-
-Cargo.toml

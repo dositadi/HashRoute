@@ -15,6 +15,9 @@ pub trait Repo {
 
 type ErrMessage = &'static str;
 
+/// Name Postgres generates for the UNIQUE constraint on `users.email`.
+const USERS_EMAIL_UNIQUE: &str = "users_email_key";
+
 const CREATE_FAIL_MESSAGE: ErrMessage = "failed to create user";
 const FETCH_USER_FAIL_MESSAGE: ErrMessage = "failed to fetch user";
 
@@ -50,7 +53,7 @@ impl Repo for UserRepo {
                         let e = db_err.downcast_ref::<PgDatabaseError>();
                         info!(user.name, CREATE_FAIL_MESSAGE);
                         match e.constraint() {
-                            Some("users_email_exists") => Err(DBError::EmailConflict),
+                            Some(USERS_EMAIL_UNIQUE) => Err(DBError::EmailConflict),
                             _ => Err(DBError::Internal),
                         }
                     }

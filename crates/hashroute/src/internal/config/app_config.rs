@@ -30,6 +30,9 @@ pub struct ServerConfig {
     pub host: String,
     #[envconfig(from = "PORT")]
     pub port: u32,
+    /// Where short links are served from, used to build `short_url` in responses.
+    #[envconfig(from = "PUBLIC_BASE_URL", default = "http://localhost:8080")]
+    pub public_base_url: String,
 }
 
 impl ServerConfig {
