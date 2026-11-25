@@ -53,7 +53,9 @@ impl ApiError {
             .map(|(field, errs)| {
                 let messages = errs
                     .iter()
-                    .map(|e| e.message.as_ref().map_or_else(|| e.code.to_string(), ToString::to_string))
+                    .map(|e| {
+                        e.message.as_ref().map_or_else(|| e.code.to_string(), ToString::to_string)
+                    })
                     .collect();
                 (field.to_string(), messages)
             })

@@ -30,7 +30,9 @@ pub fn check_url(raw: &str) -> Result<String, URLDBError> {
         return Err(URLDBError::InvalidUrl("url must include a host".to_owned()));
     }
     if !url.username().is_empty() || url.password().is_some() {
-        return Err(URLDBError::InvalidUrl("urls with embedded credentials are not allowed".to_owned()));
+        return Err(URLDBError::InvalidUrl(
+            "urls with embedded credentials are not allowed".to_owned(),
+        ));
     }
 
     Ok(url.into())
@@ -48,7 +50,8 @@ mod test {
 
     #[test]
     fn rejects_dangerous_schemes() {
-        for bad in ["javascript:alert(1)", "data:text/html,hi", "file:///etc/passwd", "ftp://x.com"] {
+        for bad in ["javascript:alert(1)", "data:text/html,hi", "file:///etc/passwd", "ftp://x.com"]
+        {
             assert!(matches!(check_url(bad), Err(URLDBError::InvalidUrl(_))), "{bad}");
         }
     }

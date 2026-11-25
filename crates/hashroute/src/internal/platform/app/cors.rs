@@ -31,8 +31,8 @@ pub fn cors(cfg: &CORSConfig) -> CorsLayer {
 }
 
 fn parse_origin(origin: &str) -> HeaderValue {
-    let valid = (origin.starts_with("http://") || origin.starts_with("https://"))
-        && !origin.ends_with('/');
+    let valid =
+        (origin.starts_with("http://") || origin.starts_with("https://")) && !origin.ends_with('/');
     assert!(
         valid,
         "ALLOW_ORIGINS: {origin:?} must look like http://host[:port] (with a scheme, no trailing slash)"
