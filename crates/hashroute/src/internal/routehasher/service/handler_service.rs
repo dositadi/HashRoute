@@ -43,7 +43,7 @@ where
     repo: T,
 }
 
-const DEFAULT_TINY_CODE_SIZE: usize = 6;
+const DEFAULT_REGISTRATION_TRIAL_DAYSTINY_CODE_SIZE: usize = 6;
 /// How many times to try a fresh code after a collision. Each retry is one character longer.
 const MAX_ATTEMPTS: usize = 5;
 
@@ -76,7 +76,7 @@ impl<T: TinyRepo> Service<T> {
                 .repo
                 .store_mapped_url(NewURL {
                     user_id,
-                    short_code: generate_short_code(DEFAULT_TINY_CODE_SIZE + attempt),
+                    short_code: generate_short_code(DEFAULT_REGISTRATION_TRIAL_DAYSTINY_CODE_SIZE + attempt),
                     original_url: url.clone(),
                     status: STATUS_ACTIVE.to_owned(),
                 })
