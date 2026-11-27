@@ -28,3 +28,5 @@ target
 target/
 
 .env
+
+.claude
